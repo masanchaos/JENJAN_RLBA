@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逆物流回填助手</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="icon" href="https://via.placeholder.com/32x32.png?text=JM" type="image/png">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #121212; 
+            color: #ffffff; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: auto; 
+            background: #1e1e1e; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(255, 149, 0, 0.3); 
+        }
+        h1 { 
+            text-align: center; 
+            font-family: 'Playfair Display', serif; 
+        }
+        .logo { 
+            font-family: 'Playfair Display', serif; 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #ff9500; 
+            position: absolute; 
+            top: 15px; 
+            left: 20px; 
+        }
+        .upload-section { 
+            text-align: center; 
+            margin-bottom: 20px; 
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .btn { 
+            width: 220px;
+            height: 60px;
+            background: #ff9500; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:hover { 
+            background: #ff6600; 
+        }
+        input[type="file"] { 
+            display: none; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+        }
+        th, td { 
+            border: 1px solid #444; 
+            padding: 12px; 
+            text-align: left; 
+            font-size: 15px;
+        }
+        th { 
+            background: #ff9500; 
+            color: black; 
+        }
+        th.updated { 
+            font-weight: bold;
+            color: red;
+        }
+        td:empty { 
+            border: none; /* 清除空單元格的邊框 */
+        }
+        .loading { 
+            text-align: center; 
+            display: none; 
+            color: #ff9500; 
+            font-size: 18px;
+        }
+        .upload-time {
+            text-align: center;
+            font-size: 14px;
+            color: #bbbbbb;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo">JM</div>
+
+    <div class="container">
+        <h1>逆物流回填助手</h1>
+        <div class="upload-section">
+            <div class="button-group">
+                <label for="file-upload" class="btn">📤 上傳 Excel</label>
+                <input type="file" id="file-upload" accept=".xlsx, .xls" onchange="processFile(event)">
+                <button class="btn" onclick="downloadExcel()">📥 下載 Excel</button>
+            </div>
+        </div>
+        <div class="upload-time" id="upload-time">尚未上傳檔案</div>
+        <div class="loading" id="loading">處理中...</div>
+        <table id="inventory-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>商品編號</th>
+                    <th>國際條碼</th>
+                    <th>名稱</th>
+                    <th>尺寸</th>
+                    <th>目前庫存數量</th>
+                    <th>期間出倉數量</th>
+                    <th class="updated">更新後期間入倉數量</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let workbook;
+        let updatedInventoryData = [];
+        let headers = [];
+
+        async function processFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('inventory-table').style.display = 'none';
+            document.getElementById('upload-time').innerText = "上傳時間: " + new Date().toLocaleString();
+
+            try {
+                const data = await file.arrayBuffer();
+                workbook = XLSX.read(data, { type: 'array' });
+
+                if (!workbook.Sheets['逆物流紀錄'] || !workbook.Sheets['庫存紀錄']) {
+                    throw new Error('上傳的 Excel 檔案缺少「逆物流紀錄」或「庫存紀錄」工作表');
+                }
+
+                // 處理逆物流紀錄
+                const returnSheet = workbook.Sheets['逆物流紀錄'];
+                const returnData = XLSX.utils.sheet_to_json(returnSheet, { header: 1 });
+                const productQuantities = {};
+
+                returnData.slice(1).forEach(row => {
+                    const productId = row[2];
+                    const quantity = Number(row[4]) || 0;
+                    if (productId) {
+                        productQuantities[productId] = (productQuantities[productId] || 0) + quantity;
+                    }
+                });
+
+                // 處理庫存紀錄
+                const inventorySheet = workbook.Sheets['庫存紀錄'];
+                const inventoryData = XLSX.utils.sheet_to_json(inventorySheet, { header: 1 });
+                headers = inventoryData[0];
+                headers[6] = "更新後期間入倉數量";
+                const inventoryRows = inventoryData.slice(1).filter(row => row.length > 0);
+
+                updatedInventoryData = inventoryRows.map(row => {
+                    const productId = row[0];
+                    const updatedInbound = (Number(row[6]) || 0) + (productQuantities[productId] || 0);
+                    row[6] = updatedInbound;
+                    // 只保留前7列，避免多餘數據
+                    return headers.slice(0, 7).map((_, i) => row[i] !== undefined && row[i] !== '' ? row[i] : '');
+                });
+
+                // 更新工作表
+                workbook.Sheets['庫存紀錄'] = XLSX.utils.aoa_to_sheet([headers, ...updatedInventoryData]);
+
+                // 渲染表格
+                renderTable(updatedInventoryData);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('inventory-table').style.display = 'table';
+            } catch (error) {
+                alert('處理檔案時發生錯誤：' + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('inventory-body');
+            tbody.innerHTML = ''; // 清空既有內容
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                // 只渲染7列，與表頭一致
+                row.slice(0, 7).forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function downloadExcel() {
+            if (!workbook || updatedInventoryData.length === 0) {
+                alert('請先上傳並處理 Excel 檔案');
+                return;
+            }
+
+            // 生成帶有公司名和日期時間的檔案名稱
+            const now = new Date();
+            const dateTimeStr = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + '_' +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+            const fileName = `JENJAN_updated_inventory_${dateTimeStr}.xlsx`;
+
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+
+</body>
+</html>
