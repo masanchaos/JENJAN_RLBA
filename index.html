@@ -6,9 +6,9 @@
     <title>逆物流回填助手</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="icon" href="https://via.placeholder.com/32x32.png?text=JM" type="image/png">
+    <!-- 直接使用<link>載入Google Fonts，確保字型可用 -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
-
         /* CSS重置，消除瀏覽器預設樣式影響 */
         .reverse-logistics * {
             margin: 0;
@@ -16,18 +16,17 @@
             box-sizing: border-box;
         }
 
-        /* 將body背景設為與.reverse-logistics一致，並確保填滿視窗 */
         body {
             background-color: #121212;
-            min-height: 100vh; /* 確保body至少填滿視窗高度 */
-            margin: 0; /* 移除body預設邊距 */
+            min-height: 100vh;
+            margin: 0;
         }
 
         .reverse-logistics {
             font-family: Arial, sans-serif;
             color: #ffffff;
             padding: 20px;
-            min-height: 100vh; /* 確保內容區至少填滿視窗高度 */
+            min-height: 100vh;
         }
 
         .reverse-logistics .container {
@@ -39,14 +38,21 @@
             box-shadow: 0 4px 10px rgba(255, 149, 0, 0.3);
         }
 
-        .reverse-logistics h1 {
+        /* 強化h1樣式，確保一致性 */
+        .reverse-logistics .container h1 {
             text-align: center;
-            font-family: 'Playfair Display', serif;
+            font-family: 'Playfair Display', 'Times New Roman', serif; /* 添加備用字型 */
+            font-weight: 700; /* 明確指定粗細 */
+            font-size: 36px; /* 固定字體大小，避免縮放影響 */
+            line-height: 1.2; /* 固定行高 */
+            color: #ffffff; /* 確保顏色一致 */
             margin-bottom: 20px;
+            -webkit-font-smoothing: antialiased; /* 統一字型平滑效果 */
+            text-rendering: optimizeLegibility; /* 優化文字渲染 */
         }
 
         .reverse-logistics .logo {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Playfair Display', 'Times New Roman', serif;
             font-size: 32px;
             font-weight: bold;
             color: #ff9500;
@@ -275,7 +281,7 @@
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                tr.dataset.productId = row[0]; // 儲存商品編號到行數據中
+                tr.dataset.productId = row[0];
                 row.slice(0, 7).forEach(cell => {
                     const td = document.createElement('td');
                     td.textContent = cell;
@@ -298,9 +304,7 @@
 
             rows.forEach(row => {
                 const productId = row.dataset.productId || '';
-                row.classList.remove('highlighted'); // 先移除所有高亮
-
-                // 使用 includes 實現模糊搜尋
+                row.classList.remove('highlighted');
                 if (productId.includes(searchInput)) {
                     row.classList.add('highlighted');
                     matchCount++;
