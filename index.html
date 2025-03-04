@@ -6,7 +6,10 @@
     <title>逆物流回填助手</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="icon" href="https://via.placeholder.com/32x32.png?text=JM" type="image/png">
+    <!-- 修改外部 CSS 引入，添加時間戳避免緩存 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap?v=<%= new Date().getTime() %>">
     <style>
+        /* 內聯 CSS 不受緩存影響，因為它每次都會隨 HTML 重新載入 */
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
 
         body { 
@@ -140,7 +143,7 @@
     </style>
 </head>
 <body>
-
+    <!-- 以下保持不變 -->
     <div class="logo">JM</div>
 
     <div class="container">
@@ -175,6 +178,7 @@
         </table>
     </div>
 
+    <!-- JavaScript 部分保持不變 -->
     <script>
         let workbook;
         let updatedInventoryData = [];
@@ -305,5 +309,5 @@
         }
     </script>
 
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91af886dcaa1bcf5',t:'MTc0MTA3MjAwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
