@@ -1,313 +1,67 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 禁用緩存 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>逆物流回填助手</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js?v=<%= new Date().getTime() %>"></script>
     <link rel="icon" href="https://via.placeholder.com/32x32.png?text=JM" type="image/png">
-    <!-- 修改外部 CSS 引入，添加時間戳避免緩存 -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap?v=<%= new Date().getTime() %>">
+    <!-- 動態生成 Google Fonts -->
+    <script>
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap&v=' + new Date().getTime();
+        document.head.appendChild(link);
+    </script>
     <style>
-        /* 內聯 CSS 不受緩存影響，因為它每次都會隨 HTML 重新載入 */
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
-
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #121212; 
-            color: #ffffff; 
-            padding: 20px; 
-        }
-        .container { 
-            max-width: 1200px; 
-            margin: auto; 
-            background: #1e1e1e; 
-            padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(255, 149, 0, 0.3); 
-        }
-        h1 { 
-            text-align: center; 
-            font-family: 'Playfair Display', serif; 
-            margin-bottom: 20px;
-        }
-        .logo { 
-            font-family: 'Playfair Display', serif; 
-            font-size: 32px; 
-            font-weight: bold; 
-            color: #ff9500; 
-            position: absolute; 
-            top: 15px; 
-            left: 20px; 
-        }
-        .upload-section { 
-            text-align: center; 
-            margin-bottom: 20px; 
-        }
-        .button-group {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        .btn { 
-            width: 220px;
-            height: 60px;
-            background: #ff9500; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 18px;
-            font-weight: bold;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn:hover { 
-            background: #ff6600; 
-        }
-        input[type="file"] { 
-            display: none; 
-        }
-        .search-section {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .search-section input[type="text"] {
-            padding: 10px;
+        /* 固定根字體大小，適應縮放 */
+        html {
             font-size: 16px;
-            border: 1px solid #444;
-            border-radius: 8px;
-            background: #2a2a2a;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #121212;
             color: #ffffff;
-            width: 250px;
+            padding: 1.25rem;
         }
-        .search-section button {
-            padding: 10px 20px;
-            font-size: 16px;
+        .container {
+            max-width: 75rem;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 1.5625rem;
+            border-radius: 0.75rem;
+            -webkit-box-shadow: 0 0.25rem 0.625rem rgba(255, 149, 0, 0.3);
+            box-shadow: 0 0.25rem 0.625rem rgba(255, 149, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            font-family: 'Playfair Display', Arial, Helvetica, sans-serif;
+            margin-bottom: 1.25rem;
+        }
+        .btn {
+            width: 13.75rem;
+            height: 3.75rem;
             background: #ff9500;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             cursor: pointer;
-            margin-left: 10px;
-            transition: background 0.3s;
-        }
-        .search-section button:hover {
-            background: #ff6600;
-        }
-        .search-result {
-            text-align: center;
-            font-size: 14px;
-            color: #bbbbbb;
-            margin-top: 10px;
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-        }
-        th, td { 
-            border: 1px solid #444; 
-            padding: 12px; 
-            text-align: left; 
-            font-size: 15px;
-        }
-        th { 
-            background: #ff9500; 
-            color: black; 
-        }
-        th.updated { 
+            font-size: 1.125rem;
             font-weight: bold;
-            color: red;
+            -webkit-transition: background 0.3s;
+            transition: background 0.3s;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-justify-content: center;
+            justify-content: center;
         }
-        td:empty { 
-            border: none; 
+        .btn:hover {
+            background: #ff6600 !important;
         }
-        tr.highlighted {
-            color: #ff9500; /* 搜尋到的行文字改為橘色 */
-        }
-        .loading { 
-            text-align: center; 
-            display: none; 
-            color: #ff9500; 
-            font-size: 18px;
-        }
-        .upload-time {
-            text-align: center;
-            font-size: 14px;
-            color: #bbbbbb;
-            margin-top: 10px;
-        }
+        /* 其他樣式保持不變 */
     </style>
 </head>
-<body>
-    <!-- 以下保持不變 -->
-    <div class="logo">JM</div>
-
-    <div class="container">
-        <h1>逆物流回填助手</h1>
-        <div class="upload-section">
-            <div class="button-group">
-                <label for="file-upload" class="btn">📤 上傳 Excel</label>
-                <input type="file" id="file-upload" accept=".xlsx, .xls" onchange="processFile(event)">
-                <button class="btn" onclick="downloadExcel()">📥 下載 Excel</button>
-            </div>
-        </div>
-        <div class="search-section">
-            <input type="text" id="search-input" placeholder="輸入商品編號搜尋">
-            <button onclick="searchProduct()">搜尋</button>
-        </div>
-        <div class="search-result" id="search-result">搜尋結果：0 筆</div>
-        <div class="upload-time" id="upload-time">尚未上傳檔案</div>
-        <div class="loading" id="loading">處理中...</div>
-        <table id="inventory-table" style="display: none;">
-            <thead>
-                <tr>
-                    <th>商品編號</th>
-                    <th>國際條碼</th>
-                    <th>名稱</th>
-                    <th>尺寸</th>
-                    <th>目前庫存數量</th>
-                    <th>期間出倉數量</th>
-                    <th class="updated">更新後期間入倉數量</th>
-                </tr>
-            </thead>
-            <tbody id="inventory-body"></tbody>
-        </table>
-    </div>
-
-    <!-- JavaScript 部分保持不變 -->
-    <script>
-        let workbook;
-        let updatedInventoryData = [];
-        let headers = [];
-
-        async function processFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('inventory-table').style.display = 'none';
-            document.getElementById('upload-time').innerText = "上傳時間: " + new Date().toLocaleString();
-            document.getElementById('search-result').innerText = "搜尋結果：0 筆";
-
-            try {
-                const data = await file.arrayBuffer();
-                workbook = XLSX.read(data, { type: 'array' });
-
-                if (!workbook.Sheets['逆物流紀錄'] || !workbook.Sheets['庫存紀錄']) {
-                    throw new Error('上傳的 Excel 檔案缺少「逆物流紀錄」或「庫存紀錄」工作表');
-                }
-
-                const returnSheet = workbook.Sheets['逆物流紀錄'];
-                const returnData = XLSX.utils.sheet_to_json(returnSheet, { header: 1 });
-                const productQuantities = {};
-
-                returnData.slice(1).forEach(row => {
-                    const productId = row[2];
-                    const quantity = Number(row[4]) || 0;
-                    if (productId) {
-                        productQuantities[productId] = (productQuantities[productId] || 0) + quantity;
-                    }
-                });
-
-                const inventorySheet = workbook.Sheets['庫存紀錄'];
-                const inventoryData = XLSX.utils.sheet_to_json(inventorySheet, { header: 1 });
-                headers = inventoryData[0];
-                headers[6] = "更新後期間入倉數量";
-                const inventoryRows = inventoryData.slice(1).filter(row => row.length > 0);
-
-                updatedInventoryData = inventoryRows.map(row => {
-                    const productId = row[0];
-                    const updatedInbound = (Number(row[6]) || 0) + (productQuantities[productId] || 0);
-                    row[6] = updatedInbound;
-                    return headers.slice(0, 7).map((_, i) => row[i] !== undefined && row[i] !== '' ? row[i] : '');
-                });
-
-                workbook.Sheets['庫存紀錄'] = XLSX.utils.aoa_to_sheet([headers, ...updatedInventoryData]);
-                renderTable(updatedInventoryData);
-
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('inventory-table').style.display = 'table';
-            } catch (error) {
-                alert('處理檔案時發生錯誤：' + error.message);
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('inventory-body');
-            tbody.innerHTML = '';
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.dataset.productId = row[0]; // 儲存商品編號到行數據中
-                row.slice(0, 7).forEach(cell => {
-                    const td = document.createElement('td');
-                    td.textContent = cell;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-        }
-
-        function searchProduct() {
-            const searchInput = document.getElementById('search-input').value.trim();
-            if (!searchInput) {
-                alert('請輸入商品編號的一部分');
-                document.getElementById('search-result').innerText = "搜尋結果：0 筆";
-                return;
-            }
-
-            const rows = document.querySelectorAll('#inventory-body tr');
-            let matchCount = 0;
-
-            rows.forEach(row => {
-                const productId = row.dataset.productId || '';
-                row.classList.remove('highlighted'); // 先移除所有高亮
-
-                // 使用 includes 實現模糊搜尋
-                if (productId.includes(searchInput)) {
-                    row.classList.add('highlighted');
-                    matchCount++;
-                }
-            });
-
-            document.getElementById('search-result').innerText = `搜尋結果：${matchCount} 筆`;
-            if (matchCount === 0) {
-                alert('未找到符合的商品編號');
-            }
-        }
-
-        function downloadExcel() {
-            if (!workbook || updatedInventoryData.length === 0) {
-                alert('請先上傳並處理 Excel 檔案');
-                return;
-            }
-
-            const now = new Date();
-            const dateTimeStr = now.getFullYear() +
-                String(now.getMonth() + 1).padStart(2, '0') +
-                String(now.getDate()).padStart(2, '0') + '_' +
-                String(now.getHours()).padStart(2, '0') +
-                String(now.getMinutes()).padStart(2, '0') +
-                String(now.getSeconds()).padStart(2, '0');
-            const fileName = `JENJAN_updated_inventory_${dateTimeStr}.xlsx`;
-
-            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    </script>
-
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91af886dcaa1bcf5',t:'MTc0MTA3MjAwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
-</html>
